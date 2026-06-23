@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 text-center text-white">
+        <h1 class="fw-bold mt-4" data-i18n="results_title">Prediction Results</h1>
+        <p class="lead" id="resultsSubtitle" 
+           data-commodity="{{ results.commodity }}" 
+           data-location="{{ results.location }}">
+            <span data-i18n="results_analysis_prefix">AI analysis for</span>
+            <span class="commodity-name fw-bold"></span>
+            <span data-i18n="results_analysis_in">in</span>
+            <span class="location-name fw-bold"></span>
+        </p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Current Price -->
+    <div class="col-md-6 mb-3">
+        <div class="card glass-card border-0 shadow h-100">
+            <div class="card-body text-center p-4">
+                <h5 class="text-muted text-uppercase mb-3 fw-bold" data-i18n="results_current_price">Current Market Price</h5>
+                <h2 class="display-4 fw-bold text-dark mb-0">₹{{ results.current_price }} <span class="fs-5 text-muted">/ kg</span></h2>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Predicted Price -->
+    <div class="col-md-6 mb-3">
+        <div class="card glass-card border-0 shadow h-100" style="{% if results.trend == 'Increasing' %}border-bottom: 5px solid #198754 !important;{% else %}border-bottom: 5px solid #dc3545 !important;{% endif %}">
+            <div class="card-body text-center p-4">
+                <h5 class="text-muted text-uppercase mb-3 fw-bold" data-i18n="results_predicted_price">Predicted Price (Next Week)</h5>
+                <h2 class="display-4 fw-bold {% if results.trend == 'Increasing' %}text-success{% else %}text-danger{% endif %} mb-0" id="predictedPrice" data-price="{{ results.predicted_price }}">
+                    ₹{{ results.predicted_price }} <span class="fs-5 text-muted">/ kg</span>
+                    <i class="fas {% if results.trend == 'Increasing' %}fa-arrow-up{% else %}fa-arrow-down{% endif %} fs-4 ms-2"></i>
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4 g-4">
+    <!-- Chart -->
+    <div class="col-lg-8">
+        <div class="card glass-card border-0 shadow h-100">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4 text-center text-lg-start">
+                <h5 class="fw-bold"><i class="fas fa-chart-area text-primary me-2"></i><span data-i18n="results_chart_title">Price Trend Visualization</span></h5>
+            </div>
+            <div class="card-body p-4">
+                <canvas id="priceChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Calculator, Weather, Advisory -->
+    <div class="col-lg-4">
+        <!-- Smart Profit Calculator -->
+        <div class="card glass-card border-0 shadow mb-4">
+            <div class="card-body p-4">
+                <h6 class="fw-bold text-primary text-uppercase mb-3"><i class="fas fa-calculator me-2"></i><span data-i18n="profit_title">Smart Profit Calculator</span></h6>
+                <p class="small text-muted mb-3" data-i18n="profit_help">Estimate your earnings based on predicted price.</p>
+                
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted" data-i18n="profit_quantity">Quantity (kg)</label>
+                    <input type="number" id="calcQuantity" class="form-control" placeholder="e.g. 100" value="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted" data-i18n="profit_cost">Production Cost (₹/kg)</label>
+                    <input type="number" id="calcCost" class="form-control" placeholder="e.g. 10" value="10">
+                </div>
+                
+                <hr class="my-4 opacity-5">
+                
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="small text-muted" data-i18n="profit_revenue">Total Revenue</span>
+                    <span class="fw-bold" id="resRevenue">₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="small text-muted" data-i18n="profit_total">Estimated Profit</span>
+                    <span class="fw-bold text-success" id="resProfit">₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="small text-muted" data-i18n="profit_roi">ROI (%)</span>
+                    <span class="fw-bold badge bg-primary" id="resROI">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather -->
+        <div class="card glass-card border-0 shadow mb-4">
+            <div class="card-body p-4">
+                <h6 class="fw-bold text-muted text-uppercase mb-3" data-i18n="results_weather_title">Current Weather Context</h6>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span><i class="fas fa-thermometer-half text-danger me-2"></i><span data-i18n="results_temp">Temperature:</span></span>
+                    <span class="fw-bold">{{ results.temperature }}°C</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span><i class="fas fa-tint text-info me-2"></i><span data-i18n="results_rainfall">Rainfall:</span></span>
+                    <span class="fw-bold">{{ results.rainfall }} mm</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-water text-primary me-2"></i><span data-i18n="results_humidity">Humidity:</span></span>
+                    <span class="fw-bold">{{ results.humidity }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advisory -->
+        <div class="card border-0 shadow text-white {% if results.trend == 'Increasing' %}bg-success{% else %}bg-danger{% endif %}" style="border-radius: 15px;">
+            <div class="card-body p-4 text-center">
+                <div class="icon-circle bg-white opacity-75 mb-3 mx-auto text-dark" style="width: 50px; height: 50px; line-height: 50px; border-radius: 50%;">
+                    <i class="fas fa-bullhorn fa-lg"></i>
+                </div>
+                <h5 class="fw-bold" data-i18n="results_advisory_title">Farmer's Advisory</h5>
+                <p class="mb-0 fw-light" id="advisoryText"
+                   data-adv-type="{{ results.advisory_data.type }}"
+                   data-adv-severity="{{ results.advisory_data.severity_key }}"
+                   data-adv-pct="{{ results.advisory_data.pct }}"
+                   data-adv-commodity="{{ results.advisory_data.commodity }}"
+                   data-adv-weather="{{ results.advisory_data.weather_key }}">
+                    {{ results.advisory }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Market Recommendation -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card glass-card border-0 shadow">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4 text-center text-md-start">
+                <h5 class="fw-bold"><i class="fas fa-map-marked-alt text-success me-2"></i><span data-i18n="results_market_title">Smart Market Recommendation</span></h5>
+                <p class="text-muted mb-0" data-i18n="results_market_subtitle">Predicted prices in surrounding district markets</p>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3" id="marketGrid">
+                    {% for m in results.market_comparisons %}
+                    <div class="col-md-3">
+                        <div class="p-3 rounded border {% if loop.first %}bg-success-light border-success border-2 shadow-sm{% else %}bg-light border-light{% endif %} text-center">
+                            {% if loop.first %}
+                            <div class="badge bg-success mb-2 px-3 py-1" data-i18n="results_best_badge">BEST MARKET</div>
+                            {% endif %}
+                            <h6 class="fw-bold text-dark mb-1 market-name"
+                                data-district="{{ m.district }}"
+                                data-is-selected="{{ 'true' if m.is_selected else 'false' }}">
+                                {{ m.district }} Market{% if m.is_selected %} (Selected){% endif %}
+                            </h6>
+                            <h4 class="mb-0 {% if loop.first %}text-success fw-bold{% else %}text-muted{% endif %}">₹{{ m.price }}</h4>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4 mb-5">
+    <div class="col-12 text-center">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-lg px-5 rounded-pill shadow-sm">
+            <i class="fas fa-arrow-left me-2"></i><span data-i18n="results_back">Back to Dashboard</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // --- 1. Chart.js Implementation ---
+        var ctx = document.getElementById('priceChart').getContext('2d');
+        const currentPrice = {{ results.current_price }};
+        const predictedPrice = {{ results.predicted_price }};
+        
+        const histData = [
+            currentPrice * 0.95, currentPrice * 0.92, currentPrice * 0.88,
+            currentPrice * 0.97, currentPrice * 0.99, currentPrice, predictedPrice
+        ].map(val => val.toFixed(2));
+
+        const weekLabel = window.i18n('results_week') || 'Week';
+        const currentLabel = window.i18n('results_current') || 'Current';
+        const nextWeekLabel = window.i18n('results_next_week') || 'Next Week (Predicted)';
+        const chartLabel = (window.i18n('commodity_' + '{{ results.commodity }}') || '{{ results.commodity }}') + ' ' + (window.i18n('results_chart_label_suffix') || 'Price (₹/kg)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [
+                    `${weekLabel} -5`, `${weekLabel} -4`, `${weekLabel} -3`,
+                    `${weekLabel} -2`, `${weekLabel} -1`, currentLabel, nextWeekLabel
+                ],
+                datasets: [{
+                    label: chartLabel,
+                    data: histData,
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: ['#198754','#198754','#198754','#198754','#198754','#0d6efd','#dc3545'],
+                    pointRadius: [4,4,4,4,4,6,8],
+                    pointHoverRadius: [6,6,6,6,6,8,10],
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)', padding: 12,
+                        titleFont: { size: 14, family: "'Outfit', sans-serif" },
+                        bodyFont: { size: 16, weight: 'bold', family: "'Outfit', sans-serif" },
+                        displayColors: false,
+                        callbacks: { label: ctx => '₹ ' + ctx.parsed.y + ' / kg' }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false } },
+                    x: { grid: { display: false, drawBorder: false } }
+                }
+            }
+        });
+
+        // --- 2. Profit Calculator Logic ---
+        const quantityInput = document.getElementById('calcQuantity');
+        const costInput = document.getElementById('calcCost');
+        const resRevenue = document.getElementById('resRevenue');
+        const resProfit = document.getElementById('resProfit');
+        const resROI = document.getElementById('resROI');
+        
+        function calculate() {
+            const qty = parseFloat(quantityInput.value) || 0;
+            const costPerKg = parseFloat(costInput.value) || 0;
+            const pricePerKg = parseFloat(document.getElementById('predictedPrice').dataset.price);
+            
+            const revenue = qty * pricePerKg;
+            const totalCost = qty * costPerKg;
+            const profit = revenue - totalCost;
+            const roi = totalCost > 0 ? (profit / totalCost * 100) : 0;
+            
+            resRevenue.textContent = '₹' + revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            resProfit.textContent = '₹' + profit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            resROI.textContent = roi.toFixed(1) + '%';
+            
+            if (profit >= 0) {
+                resProfit.className = 'fw-bold text-success';
+                resROI.className = 'fw-bold badge bg-success';
+            } else {
+                resProfit.className = 'fw-bold text-danger';
+                resROI.className = 'fw-bold badge bg-danger';
+            }
+        }
+        
+        quantityInput.addEventListener('input', calculate);
+        costInput.addEventListener('input', calculate);
+        calculate(); // Initial call
+    });
+</script>
+{% endblock %}

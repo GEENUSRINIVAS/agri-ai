@@ -1,0 +1,951 @@
+{% extends "base.html" %}
+{# NOTE: dashboard uses full_layout override — no base navbar/container wrapping #}
+{% block body_class %}dashboard-page{% endblock %}
+
+{% block full_layout %}
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Dashboard Wrapper -->
+<div class="dashboard-wrapper">
+
+  <!-- ===================== LEFT SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Brand -->
+    <a class="sidebar-brand" href="#">
+      <div class="sidebar-brand-icon"><i class="fas fa-leaf"></i></div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-brand-name" data-i18n="nav_brand">AgriPredict AI</span>
+        <span class="sidebar-brand-tagline">Smart Agriculture Platform</span>
+      </div>
+    </a>
+
+    <!-- User strip -->
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar">{{ current_user.name[0].upper() }}</div>
+      <div>
+        <div class="sidebar-user-name">{{ current_user.name }}</div>
+        <div class="sidebar-user-role" data-i18n="sidebar_farmer_role">Farmer / Trader</div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label" data-i18n="sidebar_main_menu">Main Menu</div>
+
+      <button class="sidebar-nav-item active" id="nav-overview" onclick="switchModule('overview')">
+        <span class="sidebar-nav-icon"><i class="fas fa-house"></i></span>
+        <span data-i18n="nav_dashboard">Overview</span>
+      </button>
+
+      <button class="sidebar-nav-item" id="nav-prediction" onclick="switchModule('prediction')">
+        <span class="sidebar-nav-icon"><i class="fas fa-brain"></i></span>
+        <span data-i18n="dash_title">Prediction</span>
+        <span class="sidebar-nav-badge">AI</span>
+      </button>
+
+      <button class="sidebar-nav-item" id="nav-profit" onclick="switchModule('profit')">
+        <span class="sidebar-nav-icon"><i class="fas fa-calculator"></i></span>
+        <span data-i18n="profit_title">Profit Calculator</span>
+      </button>
+
+      <button class="sidebar-nav-item" id="nav-market" onclick="switchModule('market')">
+        <span class="sidebar-nav-icon"><i class="fas fa-map-marked-alt"></i></span>
+        <span data-i18n="results_market_title">Market Recommendation</span>
+      </button>
+
+      <div class="sidebar-section-label" style="margin-top:12px;" data-i18n="sidebar_tools">Tools</div>
+
+      <!-- Language Switcher in sidebar -->
+      <div class="dropdown" style="padding: 4px 0;">
+        <button class="sidebar-nav-item dropdown-toggle w-100" id="sidebarLangBtn" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="sidebar-nav-icon">🌐</span>
+          <span id="sidebarLangLabel">English</span>
+        </button>
+        <ul class="dropdown-menu lang-dropdown" aria-labelledby="sidebarLangBtn">
+          <li><a class="lang-option" data-lang="en" href="#"><span class="lang-flag">🇬🇧</span> English</a></li>
+          <li><a class="lang-option" data-lang="te" href="#"><span class="lang-flag">🇮🇳</span> తెలుగు</a></li>
+          <li><a class="lang-option" data-lang="hi" href="#"><span class="lang-flag">🇮🇳</span> हिंदी</a></li>
+          <li><a class="lang-option" data-lang="ta" href="#"><span class="lang-flag">🇮🇳</span> தமிழ்</a></li>
+          <li><a class="lang-option" data-lang="kn" href="#"><span class="lang-flag">🇮🇳</span> ಕನ್ನಡ</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <a href="{{ url_for('logout') }}" class="sidebar-nav-item">
+        <span class="sidebar-nav-icon"><i class="fas fa-sign-out-alt"></i></span>
+        <span data-i18n="nav_logout">Logout</span>
+      </a>
+    </div>
+  </aside>
+  <!-- =================== END SIDEBAR ======================= -->
+
+  <!-- =================== MAIN CONTENT ====================== -->
+  <div class="main-content">
+
+    <!-- Top Bar -->
+    <div class="topbar">
+      <!-- Mobile burger -->
+      <button class="btn btn-sm me-2 d-md-none" onclick="openSidebar()" style="background:none;border:none;font-size:1.3rem;color:#374151;">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <!-- Dynamic Title -->
+      <div class="topbar-title" id="topbarTitle">
+        <div class="topbar-title-icon icon-green" style="border-radius:10px;">
+          <i class="fas fa-house" id="topbarIcon"></i>
+        </div>
+        <div>
+          <span id="topbarTitleText" data-i18n="topbar_overview">Overview</span>
+          <span class="topbar-subtitle" id="topbarSubtitle" data-i18n="topbar_overview_sub">Welcome back, {{ current_user.name }}</span>
+        </div>
+      </div>
+
+      <!-- Topbar actions -->
+      <div class="topbar-actions">
+        <span class="badge rounded-pill" style="background:rgba(22,163,74,0.12);color:#16a34a;font-size:0.75rem;padding:6px 12px;">
+          <i class="fas fa-circle me-1" style="font-size:0.5rem;vertical-align:middle;"></i> Live
+        </span>
+      </div>
+    </div>
+
+    <!-- ============ PAGE CONTENT ============ -->
+    <div class="page-content">
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" style="border-radius:12px;" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- ================================================ -->
+      <!-- MODULE: OVERVIEW                                  -->
+      <!-- ================================================ -->
+      <div class="module-panel active" id="module-overview">
+        <div class="row g-4 mb-4">
+          <div class="col-sm-6 col-xl-3">
+            <div class="overview-stat">
+              <div class="overview-stat-icon icon-green"><i class="fas fa-brain"></i></div>
+              <div>
+                <div class="overview-stat-label" data-i18n="overview_stat_model">AI Model</div>
+                <div class="overview-stat-value">XGBoost</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="overview-stat">
+              <div class="overview-stat-icon icon-orange"><i class="fas fa-wheat-awn"></i></div>
+              <div>
+                <div class="overview-stat-label" data-i18n="overview_stat_commodities">Commodities</div>
+                <div class="overview-stat-value">19</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="overview-stat">
+              <div class="overview-stat-icon icon-blue"><i class="fas fa-location-dot"></i></div>
+              <div>
+                <div class="overview-stat-label" data-i18n="overview_stat_states">States Covered</div>
+                <div class="overview-stat-value">5</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="overview-stat">
+              <div class="overview-stat-icon icon-purple"><i class="fas fa-chart-line"></i></div>
+              <div>
+                <div class="overview-stat-label" data-i18n="overview_stat_accuracy">Accuracy</div>
+                <div class="overview-stat-value">~92%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <h6 class="section-title mb-1" data-i18n="overview_quick_title">Quick Actions</h6>
+        <p class="section-desc mb-4" data-i18n="overview_quick_desc">Jump to any module instantly</p>
+        <div class="row g-4 mb-4">
+          <div class="col-md-4">
+            <div class="quick-action" onclick="switchModule('prediction')">
+              <div class="quick-action-icon icon-green"><i class="fas fa-brain fa-lg"></i></div>
+              <h6 data-i18n="overview_card1_title">AI Price Prediction</h6>
+              <p data-i18n="overview_card1_desc">Get next-week price forecasts for any commodity using our XGBoost model.</p>
+              <div class="mt-3">
+                <span style="font-size:0.78rem;font-weight:700;color:#16a34a;">
+                  <span data-i18n="overview_launch">Launch</span> <i class="fas fa-arrow-right ms-1"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="quick-action" onclick="switchModule('profit')">
+              <div class="quick-action-icon icon-orange"><i class="fas fa-calculator fa-lg"></i></div>
+              <h6 data-i18n="overview_card2_title">Smart Profit Calculator</h6>
+              <p data-i18n="overview_card2_desc">Estimate your revenue, profit and ROI based on any selling price and quantity.</p>
+              <div class="mt-3">
+                <span style="font-size:0.78rem;font-weight:700;color:#f59e0b;">
+                  <span data-i18n="overview_launch">Launch</span> <i class="fas fa-arrow-right ms-1"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="quick-action" onclick="switchModule('market')">
+              <div class="quick-action-icon icon-blue"><i class="fas fa-map-marked-alt fa-lg"></i></div>
+              <h6 data-i18n="overview_card3_title">Market Recommendation</h6>
+              <p data-i18n="overview_card3_desc">Find the most profitable nearby markets for selling your crop.</p>
+              <div class="mt-3">
+                <span style="font-size:0.78rem;font-weight:700;color:#0ea5e9;">
+                  <span data-i18n="overview_launch">Launch</span> <i class="fas fa-arrow-right ms-1"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info strip -->
+        <div class="glass-card p-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h6 class="fw-700 mb-1" style="color:#1a3a2a;" data-i18n="overview_how_title">How It Works</h6>
+              <p class="section-desc mb-0" data-i18n="overview_how_desc">
+                Select a commodity and location in the <strong>Prediction</strong> module. The AI engine analyses weather,
+                seasonal trends and historical data to forecast next-week prices. Use the
+                <strong>Profit Calculator</strong> to estimate your earnings, and the
+                <strong>Market Recommendation</strong> to find the best place to sell.
+              </p>
+            </div>
+            <div class="col-md-4 text-center mt-3 mt-md-0">
+              <i class="fas fa-seedling" style="font-size:3.5rem;color:rgba(22,163,74,0.25);"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- END MODULE: OVERVIEW -->
+
+      <!-- ================================================ -->
+      <!-- MODULE: PREDICTION                                -->
+      <!-- ================================================ -->
+      <div class="module-panel" id="module-prediction">
+        <div class="row g-4">
+          <!-- Left: Form -->
+          <div class="col-lg-5">
+            <div class="prediction-form-card h-100">
+              <h6 class="section-title mb-1"><i class="fas fa-sliders me-2 text-green"></i><span data-i18n="dash_form_title">Prediction Parameters</span></h6>
+              <p class="section-desc mb-4" data-i18n="dash_subtitle">Select crop and location to get AI-powered price forecast</p>
+
+              <form id="predictionForm" novalidate>
+                <!-- Commodity -->
+                <div class="mb-3">
+                  <label class="form-label-custom" for="p_commodity">
+                    <i class="fas fa-apple-alt" style="color:#f59e0b;"></i> <span data-i18n="dash_commodity_label">Agricultural Commodity</span>
+                  </label>
+                  <select class="form-select" id="p_commodity" name="commodity" required>
+                    <option value="" disabled selected>Choose a commodity…</option>
+                    {% for c in commodities %}
+                    <option value="{{ c }}">{{ c }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <!-- State -->
+                <div class="mb-3">
+                  <label class="form-label-custom" for="p_state">
+                    <i class="fas fa-map-marker-alt" style="color:#dc2626;"></i> <span data-i18n="dash_state_label">State</span>
+                  </label>
+                  <select class="form-select" id="p_state" name="state" required onchange="updateDistrictsPred()">
+                    <option value="" disabled selected data-i18n="dash_state_placeholder">Choose your state…</option>
+                    {% for state in states %}
+                    <option value="{{ state }}">{{ state }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <!-- District -->
+                <div class="mb-4">
+                  <label class="form-label-custom" for="p_district">
+                    <i class="fas fa-building" style="color:#0ea5e9;"></i> <span data-i18n="dash_district_label">District</span>
+                  </label>
+                  <select class="form-select" id="p_district" name="district" required disabled>
+                    <option value="" disabled selected data-i18n="dash_district_placeholder">Select state first…</option>
+                  </select>
+                </div>
+
+                <button type="submit" class="btn-predict w-100" id="predictBtn">
+                  <i class="fas fa-magic"></i> Generate AI Forecast
+                </button>
+              </form>
+
+              <!-- Loader -->
+              <div class="ai-loader" id="predLoader">
+                <div class="ai-spinner"></div>
+                <div class="ai-loader-text">Analysing market data…</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Results -->
+          <div class="col-lg-7">
+            <!-- Empty state (before prediction) -->
+            <div id="predEmptyState" class="glass-card h-100" style="min-height:320px;display:flex;align-items:center;justify-content:center;">
+              <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-chart-area"></i></div>
+                <h6>No Forecast Yet</h6>
+                <p>Fill in the form and click <strong>Generate AI Forecast</strong> to see real-time results here.</p>
+              </div>
+            </div>
+
+            <!-- Results (hidden until prediction runs) -->
+            <div id="predictionResults" style="display:none;">
+              <!-- Price cards row -->
+              <div class="row g-3 mb-3">
+                <div class="col-6">
+                  <div class="stat-card">
+                    <div class="stat-label">Current Market Price</div>
+                    <div class="stat-value num-highlight" id="res_current">—</div>
+                    <div class="stat-unit">₹ / kg</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="stat-card">
+                    <div class="stat-label">Predicted Price (Next Week)</div>
+                    <div class="stat-value num-highlight" id="res_predicted">—</div>
+                    <div class="stat-unit">₹ / kg</div>
+                    <div class="stat-trend" id="res_trend_badge">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Chart -->
+              <div class="glass-card mb-3" style="padding:20px 20px 12px;">
+                <div class="section-title mb-3"><i class="fas fa-chart-area me-2 text-green"></i>Price Trend</div>
+                <canvas id="priceChart" height="130"></canvas>
+              </div>
+
+              <!-- Weather + Advisory -->
+              <div class="row g-3 mb-3">
+                <div class="col-md-5">
+                  <div class="glass-card p-3 h-100">
+                    <div class="section-title mb-3" style="font-size:0.85rem;"><i class="fas fa-cloud-sun-rain me-2" style="color:#0ea5e9;"></i>Weather Context</div>
+                    <div class="weather-mini">
+                      <span style="font-size:0.82rem;color:#6b7280;"><i class="fas fa-thermometer-half me-2" style="color:#dc2626;"></i>Temperature</span>
+                      <strong id="res_temp">—</strong>
+                    </div>
+                    <div class="weather-mini">
+                      <span style="font-size:0.82rem;color:#6b7280;"><i class="fas fa-tint me-2" style="color:#0ea5e9;"></i>Rainfall</span>
+                      <strong id="res_rainfall">—</strong>
+                    </div>
+                    <div class="weather-mini">
+                      <span style="font-size:0.82rem;color:#6b7280;"><i class="fas fa-water me-2" style="color:#8b5cf6;"></i>Humidity</span>
+                      <strong id="res_humidity">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-7">
+                  <div class="advisory-card" id="advisoryCard">
+                    <div class="mb-2"><i class="fas fa-bullhorn fa-lg"></i></div>
+                    <h6 class="fw-bold mb-2">Farmer's Advisory</h6>
+                    <p class="mb-0" id="advisoryText" style="font-size:0.82rem;line-height:1.55;"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- END MODULE: PREDICTION -->
+
+      <!-- ================================================ -->
+      <!-- MODULE: SMART PROFIT CALCULATOR                   -->
+      <!-- ================================================ -->
+      <div class="module-panel" id="module-profit">
+        <div class="row g-4">
+          <!-- Calculator inputs -->
+          <div class="col-lg-5">
+            <div class="glass-card p-4 h-100">
+              <h6 class="section-title mb-1"><i class="fas fa-calculator me-2" style="color:#f59e0b;"></i>Calculator Inputs</h6>
+              <p class="section-desc mb-4">Enter your crop details to estimate profit</p>
+
+              <div class="mb-3">
+                <label class="form-label-custom" for="calc_commodity">
+                  <i class="fas fa-seedling" style="color:#16a34a;"></i> <span data-i18n="dash_commodity_label">Commodity</span>
+                </label>
+                <select class="form-select" id="calc_commodity" onchange="calcUpdate()">
+                  <option value="" disabled selected>Select commodity…</option>
+                  {% for c in commodities %}
+                  <option value="{{ c }}">{{ c }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label-custom" for="calc_price">
+                  <i class="fas fa-tag" style="color:#dc2626;"></i> Selling Price (₹/kg)
+                </label>
+                <input type="number" class="form-control" id="calc_price" placeholder="e.g. 35" min="0" step="0.5" oninput="calcUpdate()">
+                <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;">Enter the expected market price</div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label-custom" for="calc_qty">
+                  <i class="fas fa-weight-hanging" style="color:#8b5cf6;"></i>
+                  <span data-i18n="profit_quantity">Quantity (kg)</span>: <strong id="calc_qty_display">100</strong> kg
+                </label>
+                <input type="range" class="range-slider" id="calc_qty" min="10" max="5000" step="10" value="100"
+                       oninput="document.getElementById('calc_qty_display').textContent=this.value; calcUpdate();">
+                <div class="d-flex justify-content-between" style="font-size:0.7rem;color:#9ca3af;">
+                  <span>10 kg</span><span>5000 kg</span>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label-custom" for="calc_cost">
+                  <i class="fas fa-coins" style="color:#f59e0b;"></i> <span data-i18n="profit_cost">Production Cost (₹/kg)</span>
+                </label>
+                <input type="number" class="form-control" id="calc_cost" placeholder="e.g. 12" min="0" step="0.5" oninput="calcUpdate()">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label-custom" for="calc_transport">
+                  <i class="fas fa-truck" style="color:#6b7280;"></i> Transport Cost (₹ total)
+                </label>
+                <input type="number" class="form-control" id="calc_transport" placeholder="e.g. 500" min="0" step="10" value="0" oninput="calcUpdate()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div class="col-lg-7">
+            <!-- Summary profit card -->
+            <div class="profit-summary-card positive mb-4" id="profitSummaryCard">
+              <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#6b7280;margin-bottom:8px;">
+                <span data-i18n="profit_total">Estimated Profit</span>
+              </div>
+              <div class="profit-amount positive" id="calcNetProfit">₹ 0.00</div>
+              <div style="font-size:0.82rem;color:#6b7280;margin-top:6px;" id="calcProfitMsg">Enter your details above</div>
+            </div>
+
+            <!-- Breakdown -->
+            <div class="glass-card p-4 mb-4">
+              <div class="section-title mb-3" style="font-size:0.9rem;">Profit Breakdown</div>
+              <div class="calc-result-row">
+                <span class="calc-result-label"><i class="fas fa-money-bill-wave" style="color:#16a34a;"></i> <span data-i18n="profit_revenue">Total Revenue</span></span>
+                <span class="calc-result-value text-green num-highlight" id="calcRevenue">₹ 0.00</span>
+              </div>
+              <div class="calc-result-row">
+                <span class="calc-result-label"><i class="fas fa-boxes-stacked" style="color:#f59e0b;"></i> Production Cost</span>
+                <span class="calc-result-value num-highlight" id="calcProdCost">₹ 0.00</span>
+              </div>
+              <div class="calc-result-row">
+                <span class="calc-result-label"><i class="fas fa-truck" style="color:#6b7280;"></i> Transport Cost</span>
+                <span class="calc-result-value num-highlight" id="calcTransport">₹ 0.00</span>
+              </div>
+              <div class="calc-result-row">
+                <span class="calc-result-label"><i class="fas fa-chart-pie" style="color:#8b5cf6;"></i> <span data-i18n="profit_roi">ROI (%)</span></span>
+                <span class="roi-badge" id="calcROI" style="background:rgba(22,163,74,0.12);color:#16a34a;">0 %</span>
+              </div>
+              <div class="calc-result-row">
+                <span class="calc-result-label"><i class="fas fa-percentage" style="color:#0ea5e9;"></i> Profit Margin</span>
+                <span class="calc-result-value num-highlight" id="calcMargin">0 %</span>
+              </div>
+            </div>
+
+            <!-- Breakeven -->
+            <div class="glass-card p-4">
+              <div class="section-title mb-1" style="font-size:0.9rem;">Break-Even Analysis</div>
+              <p class="section-desc mb-3">Minimum price needed to cover all costs</p>
+              <div class="d-flex align-items-center gap-4">
+                <div>
+                  <div style="font-size:0.72rem;text-transform:uppercase;font-weight:700;color:#6b7280;letter-spacing:0.07em;">Break-Even Price</div>
+                  <div style="font-size:1.8rem;font-weight:800;color:#1a3a2a;" id="calcBreakEven">₹ —</div>
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:0.72rem;text-transform:uppercase;font-weight:700;color:#6b7280;letter-spacing:0.07em;margin-bottom:6px;">Price vs Break-Even</div>
+                  <div style="height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden;">
+                    <div id="calcBreakBar" style="height:100%;width:0%;background:linear-gradient(to right,#16a34a,#4ade80);border-radius:5px;transition:width 0.5s ease;"></div>
+                  </div>
+                  <div class="d-flex justify-content-between mt-1" style="font-size:0.7rem;color:#9ca3af;">
+                    <span>₹0</span><span id="calcBreakBarMax">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- END MODULE: PROFIT CALCULATOR -->
+
+      <!-- ================================================ -->
+      <!-- MODULE: SMART MARKET RECOMMENDATION               -->
+      <!-- ================================================ -->
+      <div class="module-panel" id="module-market">
+        <div class="row g-4">
+          <!-- Form -->
+          <div class="col-lg-4">
+            <div class="glass-card p-4 h-100">
+              <h6 class="section-title mb-1"><i class="fas fa-map-marked-alt me-2" style="color:#0ea5e9;"></i>Search Markets</h6>
+              <p class="section-desc mb-4">Find the best market to sell your crop</p>
+
+              <div class="mb-3">
+                <label class="form-label-custom" for="mkt_commodity">
+                  <i class="fas fa-apple-alt" style="color:#f59e0b;"></i> <span data-i18n="dash_commodity_label">Commodity</span>
+                </label>
+                <select class="form-select" id="mkt_commodity" required>
+                  <option value="" disabled selected data-i18n="dash_commodity_placeholder">Choose commodity…</option>
+                  {% for c in commodities %}
+                  <option value="{{ c }}">{{ c }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label-custom" for="mkt_state">
+                  <i class="fas fa-map-marker-alt" style="color:#dc2626;"></i> <span data-i18n="dash_state_label">State</span>
+                </label>
+                <select class="form-select" id="mkt_state" required onchange="updateDistrictsMkt()">
+                  <option value="" disabled selected data-i18n="dash_state_placeholder">Choose state…</option>
+                  {% for state in states %}
+                  <option value="{{ state }}">{{ state }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label-custom" for="mkt_district">
+                  <i class="fas fa-building" style="color:#8b5cf6;"></i> <span data-i18n="dash_district_label">Your District</span>
+                </label>
+                <select class="form-select" id="mkt_district" required disabled>
+                  <option value="" disabled selected data-i18n="dash_district_placeholder">Select state first…</option>
+                </select>
+              </div>
+
+              <button class="btn-predict w-100" id="mktBtn" onclick="runMarketRec()">
+                <i class="fas fa-search-location"></i> Find Best Markets
+              </button>
+
+              <!-- Market loader -->
+              <div class="ai-loader" id="mktLoader">
+                <div class="ai-spinner"></div>
+                <div class="ai-loader-text">Scanning markets…</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Market Results -->
+          <div class="col-lg-8">
+            <!-- Empty state -->
+            <div id="mktEmptyState" class="glass-card h-100" style="min-height:320px;display:flex;align-items:center;justify-content:center;">
+              <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-store"></i></div>
+                <h6>No Markets Analysed Yet</h6>
+                <p>Select a commodity and location and click <strong>Find Best Markets</strong>.</p>
+              </div>
+            </div>
+
+            <!-- Results table -->
+            <div id="mktResults" class="d-none">
+              <!-- Cards row — padding-top gives space for best-market badge -->
+              <div class="row g-3 mb-4" id="mktCardsRow" style="padding-top:18px;"></div>
+
+              <!-- Table -->
+              <div class="glass-card p-4">
+                <div class="section-title mb-3" style="font-size:0.9rem;"><i class="fas fa-table me-2" style="color:#0ea5e9;"></i>Detailed Comparison</div>
+                <div class="table-responsive">
+                  <table class="market-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>District Market</th>
+                        <th>Predicted Price</th>
+                        <th>Price Bar</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mktTableBody"></tbody>
+                  </table>
+                </div>
+                <div class="mt-3 p-3" style="background:rgba(22,163,74,0.07);border-radius:10px;">
+                  <i class="fas fa-lightbulb text-green me-2"></i>
+                  <span id="mktRecommendationText" style="font-size:0.85rem;color:#374151;"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- END MODULE: MARKET RECOMMENDATION -->
+
+    </div><!-- end page-content -->
+  </div><!-- end main-content -->
+</div><!-- end dashboard-wrapper -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ============================================================
+// DATA
+// ============================================================
+window._locationsData = {{ locations|tojson }};
+const commodities = {{ commodities|tojson }};
+
+// ============================================================
+// MODULE SWITCHING
+// ============================================================
+const moduleConfig = {
+  overview:   { titleKey:'topbar_overview',   subtitleKey:'topbar_overview_sub',   icon:'fa-house',          iconClass:'icon-green' },
+  prediction: { titleKey:'topbar_prediction', subtitleKey:'topbar_prediction_sub', icon:'fa-brain',          iconClass:'icon-green' },
+  profit:     { titleKey:'topbar_profit',     subtitleKey:'topbar_profit_sub',     icon:'fa-calculator',     iconClass:'icon-orange' },
+  market:     { titleKey:'topbar_market',     subtitleKey:'topbar_market_sub',     icon:'fa-map-marked-alt', iconClass:'icon-blue'  },
+};
+
+let _activeModule = 'overview';
+
+function switchModule(id) {
+  _activeModule = id;
+  // Deactivate all panels & nav items
+  document.querySelectorAll('.module-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
+
+  // Activate selected
+  document.getElementById('module-' + id).classList.add('active');
+  const navEl = document.getElementById('nav-' + id);
+  if (navEl) navEl.classList.add('active');
+
+  // Update topbar using current language
+  refreshTopbar(id);
+
+  // Close mobile sidebar
+  closeSidebar();
+}
+
+function refreshTopbar(id) {
+  id = id || _activeModule;
+  const cfg = moduleConfig[id];
+  if (!cfg) return;
+  const t   = window.i18n || (k => k);
+  document.getElementById('topbarTitleText').textContent = t(cfg.titleKey);
+  document.getElementById('topbarSubtitle').textContent  = t(cfg.subtitleKey);
+  document.getElementById('topbarIcon').className = 'fas ' + cfg.icon;
+  document.getElementById('topbarTitle').querySelector('.topbar-title-icon').className =
+    'topbar-title-icon ' + cfg.iconClass;
+}
+
+// Re-apply topbar translation after language changes
+document.addEventListener('i18nReady', () => refreshTopbar());
+
+// ============================================================
+// MOBILE SIDEBAR
+// ============================================================
+function openSidebar()  {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+}
+
+// ============================================================
+// DISTRICT DROPDOWNS
+// ============================================================
+function updateDistrictsPred() {
+  if (window.updateDistricts) {
+    window.updateDistricts(false, 'p');
+  }
+}
+
+function updateDistrictsMkt() {
+  if (window.updateDistricts) {
+    window.updateDistricts(false, 'mkt');
+  }
+}
+
+// ============================================================
+// PREDICTION MODULE — AJAX submit
+// ============================================================
+let priceChartInstance = null;
+
+document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const commodity = document.getElementById('p_commodity').value;
+  const state     = document.getElementById('p_state').value;
+  const district  = document.getElementById('p_district').value;
+  if (!commodity || !state || !district) return;
+
+  const btn = document.getElementById('predictBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analysing…';
+  document.getElementById('predLoader').classList.add('active');
+  document.getElementById('predEmptyState').style.display = 'none';
+  document.getElementById('predictionResults').style.display = 'none';
+
+  try {
+    const fd = new FormData();
+    fd.append('commodity', commodity);
+    fd.append('state', state);
+    fd.append('district', district);
+
+    const res  = await fetch('/predict', { method:'POST', body: fd, headers: {'X-Requested-With':'XMLHttpRequest'} });
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+    renderPredictionResults(data);
+  } catch(err) {
+    alert('Prediction failed: ' + err.message);
+    document.getElementById('predEmptyState').style.display = 'flex';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-magic"></i> Generate AI Forecast';
+    document.getElementById('predLoader').classList.remove('active');
+  }
+});
+
+function renderPredictionResults(d) {
+  const isUp = d.trend === 'Increasing';
+
+  document.getElementById('res_current').textContent   = '\u20b9' + d.current_price.toFixed(2);
+  document.getElementById('res_predicted').textContent = '\u20b9' + d.predicted_price.toFixed(2);
+
+  const tBadge = document.getElementById('res_trend_badge');
+  tBadge.className = 'stat-trend ' + (isUp ? 'up' : 'down');
+  tBadge.innerHTML = (isUp
+    ? '<i class="fas fa-arrow-up me-1"></i>+'
+    : '<i class="fas fa-arrow-down me-1"></i>-') + d.price_change_pct + '%';
+
+  document.getElementById('res_temp').textContent     = d.temperature + ' \u00b0C';
+  document.getElementById('res_rainfall').textContent = d.rainfall    + ' mm';
+  document.getElementById('res_humidity').textContent = d.humidity    + ' %';
+
+  const advCard = document.getElementById('advisoryCard');
+  advCard.className = 'advisory-card ' + (isUp ? 'increasing' : 'decreasing');
+  document.getElementById('advisoryText').textContent = d.advisory;
+
+  // IMPORTANT: show the results div FIRST so canvas has real dimensions,
+  // then create the chart inside requestAnimationFrame so the browser
+  // has painted and Canvas has a non-zero width.
+  document.getElementById('predEmptyState').style.display  = 'none';
+  document.getElementById('predictionResults').style.display = '';
+
+  requestAnimationFrame(function() {
+    if (priceChartInstance) { priceChartInstance.destroy(); priceChartInstance = null; }
+    const cp   = d.current_price, pp = d.predicted_price;
+    const hist = [cp*0.95, cp*0.92, cp*0.88, cp*0.97, cp*0.99, cp, pp].map(v => +v.toFixed(2));
+    const canvas = document.getElementById('priceChart');
+    try {
+      const ctx = canvas.getContext('2d');
+      priceChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Wk -5','Wk -4','Wk -3','Wk -2','Wk -1','Current','Next Week'],
+          datasets: [{
+            label: d.commodity + ' Price (\u20b9/kg)',
+            data:  hist,
+            borderColor:     isUp ? '#16a34a' : '#dc2626',
+            backgroundColor: isUp ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.08)',
+            borderWidth: 3,
+            pointBackgroundColor: ['#6b7280','#6b7280','#6b7280','#6b7280','#6b7280','#0ea5e9', isUp ? '#16a34a' : '#dc2626'],
+            pointRadius: [3,3,3,3,3,6,9],
+            fill: true, tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15,20,25,0.85)', padding: 12,
+              callbacks: { label: c => '\u20b9 ' + c.parsed.y + ' / kg' }
+            }
+          },
+          scales: {
+            y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.04)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(chartErr) {
+      console.error('Chart render error:', chartErr);
+    }
+  });
+}
+
+// ============================================================
+// PROFIT CALCULATOR MODULE
+// ============================================================
+function calcUpdate() {
+  const price     = parseFloat(document.getElementById('calc_price').value) || 0;
+  const qty       = parseFloat(document.getElementById('calc_qty').value)   || 0;
+  const cost      = parseFloat(document.getElementById('calc_cost').value)  || 0;
+  const transport = parseFloat(document.getElementById('calc_transport').value) || 0;
+
+  const revenue   = price * qty;
+  const prodCost  = cost  * qty;
+  const totalCost = prodCost + transport;
+  const profit    = revenue - totalCost;
+  const roi       = totalCost > 0 ? (profit / totalCost * 100) : 0;
+  const margin    = revenue  > 0 ? (profit / revenue  * 100) : 0;
+  const breakEven = qty > 0 ? (totalCost / qty) : 0;
+
+  const fmt = v => '₹ ' + v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  document.getElementById('calcRevenue').textContent  = fmt(revenue);
+  document.getElementById('calcProdCost').textContent = fmt(prodCost);
+  document.getElementById('calcTransport').textContent = fmt(transport);
+  document.getElementById('calcNetProfit').textContent = fmt(profit);
+  document.getElementById('calcMargin').textContent   = margin.toFixed(1) + ' %';
+
+  // ROI badge
+  const roiEl = document.getElementById('calcROI');
+  roiEl.textContent = roi.toFixed(1) + ' %';
+  roiEl.style.background = roi >= 0 ? 'rgba(22,163,74,0.12)' : 'rgba(220,38,38,0.12)';
+  roiEl.style.color = roi >= 0 ? '#16a34a' : '#dc2626';
+
+  // Summary card
+  const card = document.getElementById('profitSummaryCard');
+  const profEl = document.getElementById('calcNetProfit');
+  card.className = 'profit-summary-card ' + (profit >= 0 ? 'positive' : 'negative');
+  profEl.className = 'profit-amount ' + (profit >= 0 ? 'positive' : 'negative');
+  document.getElementById('calcProfitMsg').textContent =
+    price === 0 ? 'Enter your details above' :
+    profit >= 0 ? `Profit of ${fmt(profit)} on ${qty} kg` :
+                  `Loss of ${fmt(Math.abs(profit))} on ${qty} kg`;
+
+  // Break-even
+  document.getElementById('calcBreakEven').textContent = breakEven > 0 ? '₹ ' + breakEven.toFixed(2) : '₹ —';
+  const maxBar = Math.max(price, breakEven) * 1.2;
+  const pct    = maxBar > 0 ? Math.min((price/maxBar)*100, 100) : 0;
+  document.getElementById('calcBreakBar').style.width = pct + '%';
+  document.getElementById('calcBreakBar').style.background =
+    price >= breakEven ? 'linear-gradient(to right,#16a34a,#4ade80)' : 'linear-gradient(to right,#dc2626,#f87171)';
+  document.getElementById('calcBreakBarMax').textContent = '₹' + maxBar.toFixed(0);
+
+  // Update range slider visual
+  const slider = document.getElementById('calc_qty');
+  const pctSlider = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+  slider.style.background = `linear-gradient(to right,#16a34a ${pctSlider}%,#e5e7eb ${pctSlider}%)`;
+}
+
+// ============================================================
+// MARKET RECOMMENDATION MODULE
+// ============================================================
+async function runMarketRec() {
+  const commodity = document.getElementById('mkt_commodity').value;
+  const state     = document.getElementById('mkt_state').value;
+  const district  = document.getElementById('mkt_district').value;
+  if (!commodity || !state || !district) {
+    alert('Please select commodity, state and district.'); return;
+  }
+
+  const btn = document.getElementById('mktBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning…';
+  document.getElementById('mktLoader').classList.add('active');
+  document.getElementById('mktEmptyState').style.display = 'none';
+  document.getElementById('mktResults').classList.add('d-none');
+
+  try {
+    const fd = new FormData();
+    fd.append('commodity', commodity);
+    fd.append('state', state);
+    fd.append('district', district);
+
+    const res  = await fetch('/api/market_recommendation', { method:'POST', body: fd });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderMarketResults(data, commodity, district);
+  } catch(err) {
+    alert('Market scan failed: ' + err.message);
+    document.getElementById('mktEmptyState').style.display = 'flex';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-search-location"></i> Find Best Markets';
+    document.getElementById('mktLoader').classList.remove('active');
+  }
+}
+
+function renderMarketResults(markets, commodity, selectedDistrict) {
+  const maxPrice = Math.max(...markets.map(m => m.price));
+  const rankChips = ['gold','silver','bronze'];
+
+  // Cards
+  const cardsRow = document.getElementById('mktCardsRow');
+  cardsRow.innerHTML = '';
+  markets.forEach((m, i) => {
+    const isBest = i === 0;
+    const isSelected = m.district === selectedDistrict;
+    cardsRow.innerHTML += `
+      <div class="col-6 col-md-3">
+        <div class="market-card ${isBest ? 'best' : ''}" style="padding-top:${isBest?'28px':'20px'};">
+          ${isBest ? '<div class="market-badge">⭐ Best Market</div>' : ''}
+          <div style="font-size:1.6rem;">${isBest?'🥇':i===1?'🥈':i===2?'🥉':'📍'}</div>
+          <div class="market-name">${m.district}</div>
+          <div class="market-price ${isBest?'best-price':''}">₹${m.price.toFixed(2)}</div>
+          <div class="market-state">${m.state || ''}</div>
+          ${isSelected ? '<div class="market-selected-tag">Your Location</div>' : ''}
+        </div>
+      </div>`;
+  });
+
+  // Table
+  const tbody = document.getElementById('mktTableBody');
+  tbody.innerHTML = '';
+  markets.forEach((m, i) => {
+    const chip = rankChips[i] || 'other';
+    const barPct = ((m.price / maxPrice) * 100).toFixed(1);
+    const isSelected = m.district === selectedDistrict;
+    tbody.innerHTML += `
+      <tr class="${i===0?'rank-1':''}">
+        <td><span class="rank-chip ${chip}">${i+1}</span></td>
+        <td><strong>${m.district}</strong> ${isSelected?'<span class="market-selected-tag ms-1">You</span>':''}</td>
+        <td><strong class="${i===0?'text-green':''}">₹${m.price.toFixed(2)}</strong> <small class="text-muted">/kg</small></td>
+        <td style="min-width:120px;">
+          <div class="price-bar-wrap">
+            <div class="price-bar" style="width:${barPct}%;max-width:100px;"></div>
+            <span style="font-size:0.72rem;color:#9ca3af;">${barPct}%</span>
+          </div>
+        </td>
+        <td>
+          ${i===0 ? '<span style="font-size:0.75rem;background:rgba(22,163,74,0.12);color:#16a34a;padding:3px 10px;border-radius:20px;font-weight:700;">Best</span>'
+                  : '<span style="font-size:0.75rem;color:#9ca3af;">Compare</span>'}
+        </td>
+      </tr>`;
+  });
+
+  // Recommendation text
+  const best = markets[0];
+  const gain = ((best.price - markets.find(m=>m.district===selectedDistrict)?.price || best.price) / best.price * 100).toFixed(1);
+  document.getElementById('mktRecommendationText').textContent =
+    `Selling ${commodity} at ${best.district} market gives the highest predicted price of ₹${best.price.toFixed(2)}/kg. ` +
+    (best.district !== selectedDistrict ? `That's potentially ${gain}% more than your local market.` : `That's your current district — great choice!`);
+
+  document.getElementById('mktResults').classList.remove('d-none');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  calcUpdate();
+
+  // Keep sidebar lang options in sync with topbar i18n
+  document.querySelectorAll('.lang-option[data-lang]').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (window.setLanguage) window.setLanguage(this.dataset.lang);
+      const map = {en:'English',te:'తెలుగు',hi:'हिंदी',ta:'தமிழ்',kn:'ಕನ್ನಡ'};
+      document.querySelectorAll('#langBtnLabel,#sidebarLangLabel').forEach(l => l.textContent = map[this.dataset.lang]||'English');
+    });
+  });
+});
+</script>
+{% endblock %}

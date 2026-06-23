@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="col-md-6 col-lg-5">
+        <div class="card glass-card border-0 shadow-lg form-card">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <div class="icon-circle bg-primary-light text-primary mb-3 mx-auto">
+                        <i class="fas fa-user-plus fa-2x"></i>
+                    </div>
+                    <h2 class="fw-bold" data-i18n="register_title">Create Account</h2>
+                    <p class="text-muted" data-i18n="register_subtitle">Join the AgriPredict platform</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('register') }}">
+                    <div class="mb-3 form-floating">
+                        <input type="text" class="form-control" id="name" name="name" placeholder="Full Name" required>
+                        <label for="name" data-i18n-label="register_name"><i class="fas fa-user me-2 text-muted"></i>Full Name</label>
+                    </div>
+                    
+                    <div class="mb-3 form-floating">
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Email" required>
+                        <label for="email" data-i18n-label="register_email"><i class="fas fa-envelope me-2 text-muted"></i>Email address</label>
+                    </div>
+                    
+                    <div class="mb-4 form-floating">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                        <label for="password" data-i18n-label="register_password"><i class="fas fa-lock me-2 text-muted"></i>Password</label>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold rounded-pill text-white shadow-sm btn-scale" data-i18n="register_btn">
+                            Register
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4">
+                    <p class="mb-0 text-muted">
+                        <span data-i18n="register_have_account">Already have an account?</span>
+                        <a href="{{ url_for('login') }}" class="text-primary fw-bold text-decoration-none hover-underline" data-i18n="register_signin">Sign in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
